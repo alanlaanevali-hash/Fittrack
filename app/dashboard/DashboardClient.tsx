@@ -165,7 +165,7 @@ export default function DashboardClient({ user, initialProfile }: { user: { id: 
     await loadAll()
   }
   async function saveProfile() {
-    await supabase.from('profiles').upsert({ id: user.id, ...profile })
+    await supabase.from('profiles').upsert({ ...profile, id: user.id })
   }
   async function signOut() {
     await supabase.auth.signOut(); router.push('/login')
