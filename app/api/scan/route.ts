@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   "speed": number or null,
   "type": "run_easy" or "run_tempo" or "bike_easy" or "bike_hard" or "recovery_walk" or "brick"
 }
-Labels may be in Estonian: Kestus=duration, Distants=distance, Keskm HR=avg HR, Kalorid=calories, Keskm tempo=avg pace. If pace exists it's a run, if speed exists it's a bike. Return null for missing fields.`
+Labels may be in Estonian: Kestus=duration, Distants=distance, Keskm HR=avg HR, Kalorid=calories, Keskm tempo=avg pace. If pace exists it is a run, if speed exists it is a bike. Return null for missing fields.`
     : `You are reading a Foodvisor meal tracking screenshot. Extract meal data and return ONLY valid JSON, nothing else:
 {
   "meal_type": "breakfast" or "lunch" or "dinner" or "snack",
@@ -26,30 +26,37 @@ Labels may be in Estonian: Kestus=duration, Distants=distance, Keskm HR=avg HR, 
 }
 Return null for any missing values.`
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
-      'anthropic-version': '2023-06-01',
+      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'claude-opus-4-5',
+      model: 'gpt-4o',
       max_tokens: 500,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: image } },
-          { type: 'text', text: 'Extract the data from this screenshot and return only JSON.' }
-        ]
-      }],
-      system: systemPrompt,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${image}` }
+            },
+            {
+              type: 'text',
+              text: 'Extract the data from this screenshot and return only JSON.'
+            }
+          ]
+        }
+      ]
     })
   })
 
   const data = await response.json()
-  const text = data.content?.[0]?.text || '{}'
-  
+  const text = data.choices?.[0]?.message?.content || '{}'
+
   try {
     const clean = text.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(clean)
